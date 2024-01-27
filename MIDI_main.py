@@ -113,11 +113,11 @@ class MIDI_transcriber(QtWidgets.QDialog):
     def popup(self, mode):
         self.popup_window = QtWidgets.QDialog()
         popup_layout = QtWidgets.QVBoxLayout(self.popup_window)
-        self.popup_window.setStyleSheet("background-color: #BBF64D")
+        self.popup_window.setStyleSheet('background-color: #BBF64D')
 
         def add_title(text):
             title = QtWidgets.QLabel(text)
-            title.setStyleSheet("font-weight: bold")
+            title.setStyleSheet('font-weight: bold')
             popup_layout.addWidget(title)
 
         if mode == 'multiple devices':
@@ -125,7 +125,7 @@ class MIDI_transcriber(QtWidgets.QDialog):
 
             for device in self.devices_list:
                 button = QtWidgets.QPushButton(device)
-                button.setStyleSheet("background-color: #d4fa8e")
+                button.setStyleSheet('background-color: #d4fa8e')
                 button.clicked.connect(self.make_on_click(device))
                 popup_layout.addWidget(button)
 
