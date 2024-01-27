@@ -1,3 +1,4 @@
+from time import sleep
 import rtmidi
 import os
 import json
@@ -6,8 +7,12 @@ import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class MIDI_transcriber(object):
+class MIDI_transcriber(QtWidgets.QDialog):
+    show_popup_signal = QtCore.pyqtSignal(str)
+    button_clicked_signal = QtCore.pyqtSignal()
+
     def __init__(self, dialog):
+        super(MIDI_transcriber, self).__init__()
         self.dialog = dialog
 
         if not os.path.exists('devices'):
@@ -16,6 +21,8 @@ class MIDI_transcriber(object):
         self.setup_gui()
         midi_thread = threading.Thread(target=self.setup_midi_device, daemon=True)
         midi_thread.start()
+
+        self.show_popup_signal.connect(self.popup)
 
     def setup_gui(self):
         self.dialog.setObjectName('MIDI_GUI')
@@ -53,19 +60,23 @@ class MIDI_transcriber(object):
 
     def setup_midi_device(self):
         midi_in = rtmidi.MidiIn()
-        devices_list = midi_in.get_ports()
-        port = 0
+        self.devices_list = midi_in.get_ports()
+        self.port = 'undefined'
 
-        if len(devices_list) < 1:
-            print('no midi devices available')
-        elif len(devices_list) > 1:
-            print('choose midi device:'
-                  f'\n{devices_list}')
-            port = input('port > ')
+        if len(self.devices_list) < 1:
+            self.show_popup_signal.emit('no devices')
+            sleep(10)
+            os._exit(0)
+        elif len(self.devices_list) == 1:
+            self.port = 0
+        elif len(self.devices_list) > 1:
+            self.show_popup_signal.emit('multiple devices')
+            loop = QtCore.QEventLoop()
+            self.button_clicked_signal.connect(loop.quit)
+            loop.exec_()
 
-        self.midi_device = midi_in.open_port(int(port))
-        self.device_name = devices_list[int(port)]
-        print(f'device {self.device_name} selected')
+        self.midi_device = midi_in.open_port(int(self.port))
+        self.device_name = self.devices_list[int(self.port)]
 
         if not os.path.exists(f'devices/{self.device_name}.json'):
             self.calibration()
@@ -80,7 +91,7 @@ class MIDI_transcriber(object):
         self.fingering_chart_printer()
 
     def calibration(self):
-        print('please press and release the middle C on your midi device')
+        self.show_popup_signal.emit('calibration')
         calib_msgs_list = []
         while len(calib_msgs_list) < 2:
             calib_msg = self.midi_device.get_message()
@@ -96,6 +107,43 @@ class MIDI_transcriber(object):
         with open(f'devices/{self.device_name}.json', 'w') as f:
             json.dump(json_dict, f, indent=2, separators=(',', ': '))
 
+        self.popup_window.close()
+
+    @QtCore.pyqtSlot(str)
+    def popup(self, mode):
+        self.popup_window = QtWidgets.QDialog()
+        popup_layout = QtWidgets.QVBoxLayout(self.popup_window)
+        self.popup_window.setStyleSheet("background-color: #BBF64D")
+
+        def add_title(text):
+            title = QtWidgets.QLabel(text)
+            title.setStyleSheet("font-weight: bold")
+            popup_layout.addWidget(title)
+
+        if mode == 'multiple devices':
+            add_title('Multiple MIDI devices were detected, please select one.')
+
+            for device in self.devices_list:
+                button = QtWidgets.QPushButton(device)
+                button.setStyleSheet("background-color: #d4fa8e")
+                button.clicked.connect(self.make_on_click(device))
+                popup_layout.addWidget(button)
+
+        elif mode == 'no devices':
+            add_title('No MIDI devices were detected, please connect one then relaunch.')
+
+        elif mode == 'calibration':
+            add_title('A new MIDI device was detected, please press the middle C to calibrate.')
+
+        self.popup_window.exec_()
+
+    def make_on_click(self, device):
+        def on_click():
+            self.port = self.devices_list.index(device)
+            self.button_clicked_signal.emit()
+            self.popup_window.close()
+        return on_click
+
     def note_generator(self):
         while self.midi_device.is_port_open():
             msg = self.midi_device.get_message()
@@ -107,7 +155,6 @@ class MIDI_transcriber(object):
     def fingering_chart_printer(self):
         for note in self.note_generator():
             if note in self.range:
-                print(f'{note} - index/img {self.range.index(note)}')
                 self.pic_label.setPixmap(QtGui.QPixmap(f'imgs/{self.range.index(note)}.png'))
         return
 
