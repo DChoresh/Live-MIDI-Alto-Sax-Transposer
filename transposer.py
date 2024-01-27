@@ -7,6 +7,7 @@ piano_scale_b = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'
 alto_scale_b = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab']
 result = []
 
+
 # noinspection PyUnresolvedReferences
 class Ui_Transposer(object):
     def __init__(self, Transposer):
