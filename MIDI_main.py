@@ -7,12 +7,12 @@ import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class MIDI_transcriber(QtWidgets.QDialog):
+class MIDI_transposer(QtWidgets.QDialog):
     show_popup_signal = QtCore.pyqtSignal(str)
     button_clicked_signal = QtCore.pyqtSignal()
 
     def __init__(self, dialog):
-        super(MIDI_transcriber, self).__init__()
+        super(MIDI_transposer, self).__init__()
         self.dialog = dialog
 
         if not os.path.exists('devices'):
@@ -75,8 +75,8 @@ class MIDI_transcriber(QtWidgets.QDialog):
             self.button_clicked_signal.connect(loop.quit)
             loop.exec_()
 
-        self.midi_device = midi_in.open_port(int(self.port))
-        self.device_name = self.devices_list[int(self.port)]
+        self.midi_device = midi_in.open_port(self.port)
+        self.device_name = self.devices_list[self.port]
 
         if not os.path.exists(f'devices/{self.device_name}.json'):
             self.calibration()
@@ -115,14 +115,14 @@ class MIDI_transcriber(QtWidgets.QDialog):
         popup_layout = QtWidgets.QVBoxLayout(self.popup_window)
         self.popup_window.setStyleSheet('background-color: #BBF64D')
 
-        def add_title(text):
-            title = QtWidgets.QLabel(text)
-            title.setStyleSheet('font-weight: bold')
-            popup_layout.addWidget(title)
+        def add_text(text):
+            text_label = QtWidgets.QLabel(text)
+            text_label.setStyleSheet('font-weight: bold')
+            popup_layout.addWidget(text_label)
 
         if mode == 'multiple devices':
-            add_title('Multiple MIDI devices were detected, please select one.')
-
+            self.popup_window.setWindowTitle('Select device')
+            add_text('Multiple MIDI devices have been detected, please select one.')
             for device in self.devices_list:
                 button = QtWidgets.QPushButton(device)
                 button.setStyleSheet('background-color: #d4fa8e')
@@ -130,10 +130,12 @@ class MIDI_transcriber(QtWidgets.QDialog):
                 popup_layout.addWidget(button)
 
         elif mode == 'no devices':
-            add_title('No MIDI devices were detected, please connect one then relaunch.')
+            self.popup_window.setWindowTitle('Error')
+            add_text('No MIDI devices have been detected, please connect one then relaunch.')
 
         elif mode == 'calibration':
-            add_title('A new MIDI device was detected, please press the middle C to calibrate.')
+            self.popup_window.setWindowTitle('Device calibration')
+            add_text('A new MIDI device has been detected, please press the middle C to calibrate.')
 
         self.popup_window.exec_()
 
@@ -161,7 +163,7 @@ class MIDI_transcriber(QtWidgets.QDialog):
 
 app = QtWidgets.QApplication(sys.argv)
 qt_dlg = QtWidgets.QDialog()
-MIDI_transcriber(qt_dlg)
+MIDI_transposer(qt_dlg)
 qt_dlg.show()
 app.exec_()
 
