@@ -1,10 +1,10 @@
-from time import sleep
 import rtmidi
 import os
 import json
 import sys
 import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
+from keyboard_gui import GUI_transposer
 
 
 class MIDI_transposer(QtWidgets.QDialog):
@@ -62,15 +62,21 @@ class MIDI_transposer(QtWidgets.QDialog):
         midi_in = rtmidi.MidiIn()
         self.devices_list = midi_in.get_ports()
         self.port = 'undefined'
+        self.onscreen_keyboard = False
 
         if len(self.devices_list) < 1:
             self.show_popup_signal.emit('no devices')
-            sleep(10)
-            os._exit(0)
+            self.onscreen_keyboard = True
         elif len(self.devices_list) == 1:
             self.port = 0
         elif len(self.devices_list) > 1:
             self.show_popup_signal.emit('multiple devices')
+            loop = QtCore.QEventLoop()
+            self.button_clicked_signal.connect(loop.quit)
+            loop.exec_()
+
+        if not self.onscreen_keyboard:
+            self.show_popup_signal.emit('onscreen keyboard?')
             loop = QtCore.QEventLoop()
             self.button_clicked_signal.connect(loop.quit)
             loop.exec_()
@@ -88,6 +94,8 @@ class MIDI_transposer(QtWidgets.QDialog):
         self.key_off = config['key_off']
         self.range = [*range(config['Db3'], config['Db3']+32)]
 
+        if self.onscreen_keyboard:
+            threading.Thread(target=self.show_keyboard_gui).start()
         self.fingering_chart_printer()
 
     def calibration(self):
@@ -131,13 +139,33 @@ class MIDI_transposer(QtWidgets.QDialog):
 
         elif mode == 'no devices':
             self.popup_window.setWindowTitle('Error')
-            add_text('No MIDI devices have been detected, please connect one then relaunch.')
+            add_text('No MIDI devices have been detected, please exit this popup to launch the onscreen keyboard.')
 
         elif mode == 'calibration':
             self.popup_window.setWindowTitle('Device calibration')
             add_text('A new MIDI device has been detected, please press the middle C to calibrate.')
 
+        elif mode == 'onscreen keyboard?':
+            self.popup_window.setWindowTitle('Choose')
+            add_text('Add an onscreen keyboard?')
+            options = ['Yes', 'No']
+            for option in options:
+                button = QtWidgets.QPushButton(option)
+                popup_layout.addWidget(button)
+                button.setStyleSheet('background-color: #d4fa8e')
+                button.clicked.connect(self.set_onscreen_keyboard(button.text()))
+
         self.popup_window.exec_()
+
+    def set_onscreen_keyboard(self, b):
+        def onscreen_keyboard_bool():
+            if b == 'Yes':
+                self.onscreen_keyboard = True
+            elif b == 'No':
+                self.onscreen_keyboard = False
+            self.button_clicked_signal.emit()
+            self.popup_window.close()
+        return onscreen_keyboard_bool
 
     def make_on_click(self, device):
         def on_click():
@@ -159,6 +187,13 @@ class MIDI_transposer(QtWidgets.QDialog):
             if note in self.range:
                 self.pic_label.setPixmap(QtGui.QPixmap(f'imgs/{self.range.index(note)}.png'))
         return
+
+    def show_keyboard_gui(self):
+        app = QtWidgets.QApplication(sys.argv)
+        qt_dlg2 = QtWidgets.QDialog()
+        GUI_transposer(qt_dlg2)
+        qt_dlg2.show()
+        app.exec_()
 
 
 app = QtWidgets.QApplication(sys.argv)
