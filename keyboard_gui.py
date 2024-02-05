@@ -7,7 +7,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Keyboard(QtWidgets.QDialog):
     change_image_signal = QtCore.pyqtSignal(str)
 
-    def __init__(self, dialog):
+    def __init__(self, dialog: QtWidgets.QDialog):
+        """
+        This class creates the onscreen keyboard GUI and logic, ready to be instansiated in main.py.
+        :param dialog: QtWidgets.QDialog
+        """
         super(Keyboard, self).__init__()
         self.dialog = dialog
         white_stylesheet = """
@@ -85,20 +89,36 @@ class Keyboard(QtWidgets.QDialog):
         self.button_list.sort(key=lambda b: b.pos().x())
         self.button_names_list = [b.objectName() for b in self.button_list]
 
-    def make_on_click(self, note):
+    def make_on_click(self, note: str):
+        """
+        This function creates a function for each onscreen note pressed.
+        :param note: string: button name
+        :return: function: on_click
+        """
         def on_click():
             threading.Thread(target=self.play_sound, args=(note,)).start()
             self.send_image_index(self.button_names_list.index(note))
         return on_click
 
-    def play_sound(self, note):
+    def play_sound(self, note: str) -> None:
+        """
+        Plays the note sound.
+        :param note: string: button name
+        :return:
+        """
         playsound.playsound(f'sounds/{note}.mp3')
 
-    def send_image_index(self, index):
+    def send_image_index(self, index) -> None:
+        """
+        Sends the image change signal to the main GUI class.
+        :param index: int: note index
+        :return:
+        """
         self.change_image_signal.emit(str(index))
 
 
 if __name__ == '__main__':
+    # independently run script
     app = QtWidgets.QApplication(sys.argv)
     qt_dlg = QtWidgets.QDialog()
     Keyboard(qt_dlg)

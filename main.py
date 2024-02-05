@@ -11,7 +11,11 @@ class MIDI_transposer(QtWidgets.QDialog):
     show_popup_signal = QtCore.pyqtSignal(str)
     button_clicked_signal = QtCore.pyqtSignal()
 
-    def __init__(self, dialog):
+    def __init__(self, dialog: QtWidgets.QDialog):
+        """
+        This class instantiates the main GUI thread and the MIDI input thread.
+        :param dialog: QtWidgets.QDialog
+        """
         super(MIDI_transposer, self).__init__()
         self.dialog = dialog
 
@@ -24,7 +28,11 @@ class MIDI_transposer(QtWidgets.QDialog):
 
         self.show_popup_signal.connect(self.popup)
 
-    def setup_gui(self):
+    def setup_gui(self) -> None:
+        """
+        This function sets all GUI elements.
+        :return:
+        """
         self.dialog.setObjectName('MIDI_GUI')
         self.dialog.setWindowModality(QtCore.Qt.NonModal)
         self.dialog.setEnabled(True)
@@ -58,7 +66,12 @@ class MIDI_transposer(QtWidgets.QDialog):
         self.dialog.setWindowTitle(_translate('MIDI_GUI', 'Fingerings'))
         QtCore.QMetaObject.connectSlotsByName(self.dialog)
 
-    def setup_midi_device(self):
+    def setup_midi_device(self) -> None:
+        """
+        This function sets the MIDI input port out of the available devices, as well as the onscreen
+        keyboard option.
+        :return:
+        """
         midi_in = rtmidi.MidiIn()
         self.devices_list = midi_in.get_ports()
         self.port = 'undefined'
@@ -99,7 +112,11 @@ class MIDI_transposer(QtWidgets.QDialog):
         self.fingering_chart_printer()
 
     @QtCore.pyqtSlot(str)
-    def show_keyboard(self):
+    def show_keyboard(self) -> None:
+        """
+        This function executes the onscreen keyboard and connects the signal to the main GUI thread.
+        :return:
+        """
         app = QtWidgets.QApplication(sys.argv)
         qt_dlg2 = QtWidgets.QDialog()
         k = Keyboard(qt_dlg2)
@@ -107,7 +124,12 @@ class MIDI_transposer(QtWidgets.QDialog):
         qt_dlg2.show()
         app.exec_()
 
-    def calibration(self):
+    def calibration(self) -> None:
+        """
+        When a new device is connected this function creates a .JSON file saving the value of the middle C note,
+        since it varies between different MIDI devices.
+        :return:
+        """
         self.show_popup_signal.emit('calibration')
         calib_msgs_list = []
         while len(calib_msgs_list) < 2:
@@ -127,7 +149,12 @@ class MIDI_transposer(QtWidgets.QDialog):
         self.popup_window.close()
 
     @QtCore.pyqtSlot(str)
-    def popup(self, mode):
+    def popup(self, mode: str) -> None:
+        """
+        A custom popup window for device selection calibration and stuff.
+        :param mode: string: different popup modes
+        :return:
+        """
         self.popup_window = QtWidgets.QDialog()
         popup_layout = QtWidgets.QVBoxLayout(self.popup_window)
         self.popup_window.setStyleSheet('background-color: #BBF64D')
@@ -166,7 +193,12 @@ class MIDI_transposer(QtWidgets.QDialog):
 
         self.popup_window.exec_()
 
-    def set_onscreen_keyboard(self, b):
+    def set_onscreen_keyboard(self, b: str):
+        """
+        This function makes a function for each button (yes and no) in the selection popup.
+        :param b: string: the button's text
+        :return: function: onscreen_keyboard_bool
+        """
         def onscreen_keyboard_bool():
             if b == 'Yes':
                 self.onscreen_keyboard = True
@@ -176,7 +208,12 @@ class MIDI_transposer(QtWidgets.QDialog):
             self.popup_window.close()
         return onscreen_keyboard_bool
 
-    def make_on_click(self, device):
+    def make_on_click(self, device: str):
+        """
+        Similarly to the previous function, this one creates a function for each MIDI device available.
+        :param device: string: device name
+        :return: function: on_click
+        """
         def on_click():
             self.port = self.devices_list.index(device)
             self.button_clicked_signal.emit()
@@ -184,6 +221,10 @@ class MIDI_transposer(QtWidgets.QDialog):
         return on_click
 
     def note_generator(self):
+        """
+        A generator function that yields every note pressed on the MIDI device.
+        :return: int: note value
+        """
         while self.midi_device.is_port_open():
             msg = self.midi_device.get_message()
             if msg is not None:
@@ -191,16 +232,26 @@ class MIDI_transposer(QtWidgets.QDialog):
                     note_pressed = msg[0][1]
                     yield note_pressed
 
-    def fingering_chart_printer(self):
+    def fingering_chart_printer(self) -> None:
+        """
+        Iterates over the notes from the generator and calls for an image change with the corresponding index.
+        :return:
+        """
         for note in self.note_generator():
             if note in self.range:
                 self.change_image(self.range.index(note))
         return
 
-    def change_image(self, i):
+    def change_image(self, i: int) -> None:
+        """
+        This function is responsible for changing the fingerings image currently shown.
+        :param i: int: note index (same as file name)
+        :return:
+        """
         self.pic_label.setPixmap(QtGui.QPixmap(f'imgs/{i}.png'))
 
 
+# calling for the main dialog window
 app = QtWidgets.QApplication(sys.argv)
 qt_dlg = QtWidgets.QDialog()
 MIDI_transposer(qt_dlg)
