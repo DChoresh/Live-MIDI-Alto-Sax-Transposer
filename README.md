@@ -1,6 +1,6 @@
 Live MIDI Transposer
 ===
-Transposer that takes a note (MIDI / onscreen keyboard) in concert pitch and <br>
+Transposer that takes a note (MIDI / onscreen keyboard) in concert pitch and
 outputs the corresponding note in alto saxophone + its fingerings.
 ---
 Usage
