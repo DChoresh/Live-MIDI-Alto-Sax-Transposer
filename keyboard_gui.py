@@ -4,9 +4,11 @@ import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class GUI_transposer(QtWidgets.QDialog):
+class Keyboard(QtWidgets.QDialog):
+    change_image_signal = QtCore.pyqtSignal(str)
+
     def __init__(self, dialog):
-        super(GUI_transposer, self).__init__()
+        super(Keyboard, self).__init__()
         self.dialog = dialog
         white_stylesheet = """
         background-color: #ffffff;
@@ -25,7 +27,7 @@ class GUI_transposer(QtWidgets.QDialog):
         self.black_note_list = ['D♭', 'E♭', 'G♭', 'A♭', 'B♭']
         self.black_num = 14
         self.black_button_list = []
-        dialog.setObjectName('Transposer')
+        dialog.setObjectName('Keyboard')
         self.window_x = 1440
         dialog.resize(self.window_x, 440)
         dialog.setMinimumSize(QtCore.QSize(self.window_x, 440))
@@ -67,33 +69,38 @@ class GUI_transposer(QtWidgets.QDialog):
 
         QtCore.QMetaObject.connectSlotsByName(dialog)
         _translate = QtCore.QCoreApplication.translate
-        dialog.setWindowTitle(_translate('Transposer', 'Transposer'))
+        dialog.setWindowTitle(_translate('Keyboard', 'Keyboard'))
 
         for white in enumerate(self.white_button_list):
             idx, button = white[0], white[1]
             text = self.white_note_list[idx % len(self.white_note_list)]
-            button.setText(_translate('Transposer', text))
+            button.setText(_translate('Keyboard', text))
 
         for black in enumerate(self.black_button_list):
             idx, button = black[0], black[1]
             text = self.black_note_list[idx % len(self.black_note_list)]
-            button.setText(_translate('Transposer', text))
+            button.setText(_translate('Keyboard', text))
 
         self.button_list = self.white_button_list + self.black_button_list
         self.button_list.sort(key=lambda b: b.pos().x())
+        self.button_names_list = [b.objectName() for b in self.button_list]
 
     def make_on_click(self, note):
         def on_click():
             threading.Thread(target=self.play_sound, args=(note,)).start()
+            self.send_image_index(self.button_names_list.index(note))
         return on_click
 
     def play_sound(self, note):
         playsound.playsound(f'sounds/{note}.mp3')
 
+    def send_image_index(self, index):
+        self.change_image_signal.emit(str(index))
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     qt_dlg = QtWidgets.QDialog()
-    GUI_transposer(qt_dlg)
+    Keyboard(qt_dlg)
     qt_dlg.show()
     app.exec_()

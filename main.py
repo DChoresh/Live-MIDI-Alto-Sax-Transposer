@@ -4,7 +4,7 @@ import json
 import sys
 import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
-from keyboard_gui import GUI_transposer
+from keyboard_gui import Keyboard
 
 
 class MIDI_transposer(QtWidgets.QDialog):
@@ -95,8 +95,17 @@ class MIDI_transposer(QtWidgets.QDialog):
         self.range = [*range(config['Db3'], config['Db3']+32)]
 
         if self.onscreen_keyboard:
-            threading.Thread(target=self.show_keyboard_gui).start()
+            threading.Thread(target=self.show_keyboard).start()
         self.fingering_chart_printer()
+
+    @QtCore.pyqtSlot(str)
+    def show_keyboard(self):
+        app = QtWidgets.QApplication(sys.argv)
+        qt_dlg2 = QtWidgets.QDialog()
+        k = Keyboard(qt_dlg2)
+        k.change_image_signal.connect(self.change_image)
+        qt_dlg2.show()
+        app.exec_()
 
     def calibration(self):
         self.show_popup_signal.emit('calibration')
@@ -185,15 +194,11 @@ class MIDI_transposer(QtWidgets.QDialog):
     def fingering_chart_printer(self):
         for note in self.note_generator():
             if note in self.range:
-                self.pic_label.setPixmap(QtGui.QPixmap(f'imgs/{self.range.index(note)}.png'))
+                self.change_image(self.range.index(note))
         return
 
-    def show_keyboard_gui(self):
-        app = QtWidgets.QApplication(sys.argv)
-        qt_dlg2 = QtWidgets.QDialog()
-        GUI_transposer(qt_dlg2)
-        qt_dlg2.show()
-        app.exec_()
+    def change_image(self, i):
+        self.pic_label.setPixmap(QtGui.QPixmap(f'imgs/{i}.png'))
 
 
 app = QtWidgets.QApplication(sys.argv)
